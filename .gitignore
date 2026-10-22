@@ -1,0 +1,6 @@
+.env
+data/
+__pycache__/
+bot_err.log
+bot_out.log
+textbooks/
