@@ -1,2 +1,2 @@
-web: bash start.sh
-worker: bash start.sh
+web: .venv/bin/python -u bot.py
+worker: .venv/bin/python -u bot.py
