@@ -19,6 +19,7 @@ STATUS_EXPIRED = "expired"
 SUBSCRIPTION_DAYS = 30
 
 _DB_PATH = Path(__file__).resolve().parent / "data" / "subscriptions.db"
+_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
 def _now() -> datetime:

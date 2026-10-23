@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from pathlib import Path
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -10,23 +11,49 @@ from dotenv import load_dotenv
 from handlers import PRO_CHANNEL_ID, PRO_CHANNEL_LINK, get_admin_id, router
 from subscription_jobs import run_subscription_jobs
 
+ROOT_DIR = Path(__file__).resolve().parent
+load_dotenv(ROOT_DIR / ".env")
+
+
+async def start_health_server() -> None:
+    """Render Web Service $PORT ашпаса, 'No open HTTP ports' деп өшеді."""
+    port = os.getenv("PORT")
+    if not port:
+        return
+
+    from aiohttp import web
+
+    async def ok(_request: web.Request) -> web.Response:
+        return web.Response(text="GeoHub ok")
+
+    app = web.Application()
+    app.router.add_get("/", ok)
+    app.router.add_get("/health", ok)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await web.TCPSite(runner, "0.0.0.0", int(port)).start()
+    logging.info("Health server 0.0.0.0:%s", port)
+
 
 async def main() -> None:
-    load_dotenv()
     token = os.getenv("BOT_TOKEN")
     if not token:
-        raise RuntimeError("BOT_TOKEN табылмады. .env файлына BOT_TOKEN=... деп жазыңыз.")
+        raise RuntimeError(
+            "BOT_TOKEN табылмады. Жергілікті .env немесе Render Environment-қа BOT_TOKEN қойыңыз."
+        )
 
     logging.basicConfig(level=logging.INFO)
 
     if get_admin_id() is None:
         logging.warning(
-            "ADMIN_ID .env ішінде жоқ: чектер өңделмейді. "
-            "Ботқа /id жазып, өз ID-іңізді алыңыз да, .env-ке ADMIN_ID=... деп жазыңыз."
+            "ADMIN_ID жоқ: чектер өңделмейді. "
+            "Ботқа /id жазып, ADMIN_ID-ді Environment-қа қойыңыз."
         )
 
     if "YOUR_PRIVATE_CHANNEL_LINK" in PRO_CHANNEL_LINK:
         logging.warning("PRO_CHANNEL_LINK әлі нақты сілтемемен ауыстырылмаған (handlers.py)!")
+
+    await start_health_server()
 
     bot = Bot(token=token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
