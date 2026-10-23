@@ -1,6 +1,11 @@
+import os
+import sys
+
+os.environ.setdefault("PYTHONUNBUFFERED", "1")
+print("GeoHub bot starting...", flush=True)
+
 import asyncio
 import logging
-import os
 from pathlib import Path
 
 from aiogram import Bot, Dispatcher
@@ -14,11 +19,19 @@ from subscription_jobs import run_subscription_jobs
 ROOT_DIR = Path(__file__).resolve().parent
 load_dotenv(ROOT_DIR / ".env")
 
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stdout,
+    force=True,
+    format="%(levelname)s:%(name)s:%(message)s",
+)
+
 
 async def start_health_server() -> None:
-    """Render Web Service $PORT ашпаса, 'No open HTTP ports' деп өшеді."""
+    """Render Web Service $PORT ашпаса, инстанс қайта-қайта restart болады."""
     port = os.getenv("PORT")
     if not port:
+        logging.info("PORT жоқ, health server өшірулі")
         return
 
     from aiohttp import web
@@ -36,13 +49,12 @@ async def start_health_server() -> None:
 
 
 async def main() -> None:
+    print("GeoHub main() started", flush=True)
     token = os.getenv("BOT_TOKEN")
     if not token:
         raise RuntimeError(
             "BOT_TOKEN табылмады. Жергілікті .env немесе Render Environment-қа BOT_TOKEN қойыңыз."
         )
-
-    logging.basicConfig(level=logging.INFO)
 
     if get_admin_id() is None:
         logging.warning(
@@ -60,6 +72,7 @@ async def main() -> None:
     dp.include_router(router)
 
     await bot.delete_webhook(drop_pending_updates=True)
+    logging.info("Webhook deleted, polling starts")
 
     async def subscription_loop() -> None:
         while True:
